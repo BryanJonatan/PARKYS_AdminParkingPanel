@@ -1,0 +1,11 @@
+<!-- templates/_navbar.html — Di-include di setiap halaman -->
+<nav class="navbar">
+    <span class="brand">PARKYS</span>
+    <div class="nav-links">
+        <a href="/dashboard" {% if active == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
+        <a href="/create" {% if active == 'create' %}class="active"{% endif %}>Masuk</a>
+        <a href="/complete" {% if active == 'complete' %}class="active"{% endif %}>Keluar</a>
+        <a href="/data-parkir" {% if active == 'data-parkir' %}class="active"{% endif %}>Data Parkir</a>
+        <a href="/logout" style="color:#f87171;">Logout</a>
+    </div>
+</nav>

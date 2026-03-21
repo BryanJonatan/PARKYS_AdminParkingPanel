@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+        <title>Data Parkir — Parkys</title>
+
+        <link rel="stylesheet" href="/static/css/style.css" />
+    </head>
+
+    <body>
+        {% set active = 'data-parkir' %} {% include '_navbar.html' %}
+
+       
+
+        <div class="modal-backdrop" id="forceModal">
+            <div class="modal">
+                <h3> Force Complete Parkir</h3>
+
+                <p>
+                    Yakin ingin memaksa selesai parkir ID
+                    <strong id="modalParkingId">—</strong>?
+                    <br />
+                    Status akan diubah menjadi <em>Complete</em>.
+                </p>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" onclick="closeModal()">
+                        Batal
+                    </button>
+
+                    <button
+                        class="btn btn-danger"
+                        id="btnConfirmForce"
+                        onclick="confirmForceComplete()"
+                    >
+                        Ya, Force Complete
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        
+
+        <div id="toast" class="toast-notification"></div>
+
+        <div class="container-wide">
+          
+
+            <div class="page-header">
+                <div>
+                    <h1>Data Parkir</h1>
+                    <p>Semua kendaraan di lokasi parkir Anda</p>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                    <button onclick="refreshData()" class="btn btn-outline">
+                        Refresh
+                    </button>
+
+                    <a href="/dashboard" class="btn btn-secondary">
+                         Dashboard
+                    </a>
+                </div>
+            </div>
+
+          
+
+            {% set total = parkings | length %} {% set active_count = parkings |
+            selectattr('IsComplete','equalto',false) | list | length %} {% set
+            complete_count = parkings | selectattr('IsComplete','equalto',true)
+            | list | length %}
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #38bdf8">
+                        {{ total }}
+                    </div>
+                    <div class="stat-label">Total Kendaraan</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #fcd34d">
+                        {{ active_count }}
+                    </div>
+                    <div class="stat-label">Sedang Parkir</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-value" style="color: #86efac">
+                        {{ complete_count }}
+                    </div>
+                    <div class="stat-label">Selesai</div>
+                </div>
+            </div>
+
+         
+
+            <div class="filter-card">
+                <div class="filter-group">
+                    <input
+                        id="searchInput"
+                        type="text"
+                        placeholder=" Cari plat nomor..."
+                        oninput="filterTable()"
+                    />
+
+                    <select
+                        id="statusFilter"
+                        onchange="filterTable()"
+                        class="custom-select"
+                    >
+                        <option value="">Semua Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Paid">Paid</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+            </div>
+
+      
+
+            <div class="table-wrapper">
+                <table id="parkingTable">
+                    <thead>
+                        <tr>
+                            <th>Parking ID</th>
+                            <th>Plat Nomor</th>
+                            <th>Status</th>
+                            <th>Waktu Masuk</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% if parkings %} {% for item in parkings %}
+
+                        <tr
+                            data-plate="{{ item.PlateNumber | upper }}"
+                            data-status="{{ item.StatusName }}"
+                        >
+                            <td style="font-weight: 600; color: #94a3b8">
+                                #{{ item.ParkingId }}
+                            </td>
+
+                            <td>
+                                <span class="plate-number-text">
+                                    {{ item.PlateNumber }}
+                                </span>
+                            </td>
+
+                            <td>
+                                {% if item.StatusName == 'Completed' or
+                                item.IsComplete %}
+
+                                <span class="badge badge-complete">
+                                     Complete
+                                </span>
+
+                                {% elif item.StatusName == 'Paid' %}
+
+                                <span class="badge badge-active">
+                                     Paid
+                                </span>
+
+                                {% elif item.StatusName == 'Active' %}
+
+                                <span class="badge badge-pending">
+                                     Active
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge badge-other">
+                                    {{ item.StatusName }}
+                                </span>
+
+                                {% endif %}
+                            </td>
+
+                            <td class="text-muted">
+                                {{ item.EntryTime.replace("T"," ")[:19] }}
+                            </td>
+
+                            <td>
+                                {% if not item.IsComplete %}
+
+                                <button
+                                    class="btn btn-danger btn-sm"
+                                    data-id="{{ item.ParkingId }}"
+                                    onclick="openForceModal(this)"
+                                    title="Force complete parkir ini"
+                                >
+                                    Force
+                                </button>
+
+                                {% else %}
+
+                                <span class="text-disabled">—</span>
+
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %} {% else %}
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                Belum ada data parkir di lokasi ini.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <script>
+
+            let targetParkingId = null;
+
+            function openForceModal(button) {
+                targetParkingId = button.dataset.id;
+
+                document.getElementById("modalParkingId").textContent =
+                    targetParkingId;
+
+                document.getElementById("forceModal").classList.add("visible");
+            }
+
+            function closeModal() {
+                targetParkingId = null;
+
+                document
+                    .getElementById("forceModal")
+                    .classList.remove("visible");
+            }
+
+     
+
+            async function confirmForceComplete() {
+                if (!targetParkingId) return;
+
+                const btn = document.getElementById("btnConfirmForce");
+
+                btn.disabled = true;
+                btn.textContent = "Memproses...";
+
+                try {
+                    const resp = await fetch(
+                        "/force-complete/" + targetParkingId,
+                        {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                        },
+                    );
+
+                    const data = await resp.json();
+
+                    closeModal();
+
+                    if (data.success) {
+                        showToast(data.message, "success");
+
+                        updateRowStatus(targetParkingId);
+                    } else {
+                        showToast( data.message, "error");
+                    }
+                } catch (err) {
+                    closeModal();
+
+                    showToast(" Gagal terhubung ke server.", "error");
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = "Ya, Force Complete";
+                }
+            }
+
+            function updateRowStatus(parkingId) {
+                const rows = document.querySelectorAll(
+                    "#parkingTable tbody tr",
+                );
+
+                rows.forEach((row) => {
+                    const idCell = row.cells[0];
+
+                    if (
+                        idCell &&
+                        idCell.textContent.trim() === "#" + parkingId
+                    ) {
+                        row.cells[2].innerHTML =
+                            '<span class="badge badge-complete">✓ Complete</span>';
+
+                        row.cells[4].innerHTML =
+                            '<span class="text-disabled">—</span>';
+
+                        row.setAttribute("data-status", "Completed");
+
+                        row.style.background = "rgba(34,197,94,0.08)";
+                    }
+                });
+            }
+
+            function filterTable() {
+                const search = document
+                    .getElementById("searchInput")
+                    .value.toUpperCase();
+
+                const status = document.getElementById("statusFilter").value;
+
+                const rows = document.querySelectorAll(
+                    "#parkingTable tbody tr",
+                );
+
+                rows.forEach((row) => {
+                    const plate = row.getAttribute("data-plate") || "";
+                    const rowStatus = row.getAttribute("data-status") || "";
+
+                    const matchSearch = !search || plate.includes(search);
+
+                    const matchStatus = !status || rowStatus === status;
+
+                    row.style.display =
+                        matchSearch && matchStatus ? "" : "none";
+                });
+            }
+
+            function showToast(message, type) {
+                const toast = document.getElementById("toast");
+
+                toast.textContent = message;
+
+                toast.style.borderColor =
+                    type === "success"
+                        ? "rgba(34,197,94,0.4)"
+                        : "rgba(239,68,68,0.4)";
+
+                toast.style.color = type === "success" ? "#86efac" : "#fca5a5";
+
+                toast.style.display = "flex";
+
+                setTimeout(() => {
+                    toast.style.display = "none";
+                }, 4000);
+            }
+
+     
+
+            function refreshData() {
+                window.location.reload();
+            }
+
+
+
+            document
+                .getElementById("forceModal")
+                .addEventListener("click", function (e) {
+                    if (e.target === this) {
+                        closeModal();
+                    }
+                });
+        </script>
+    </body>
+</html>

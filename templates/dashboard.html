@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — SISPARNUS</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    {% set active = 'dashboard' %}
+    {% include '_navbar.html' %}
+
+    <div class="container">
+        <div class="page-header" style="margin-top: 8px;">
+            <div>
+                <h1>Dashboard</h1>
+                <p>Selamat datang, {{ admin_email }}</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <a href="/create" class="action-card">
+                <div class="title">Kendaraan Masuk</div>
+                <div class="desc">Scan plat nomor via webcam untuk catat entry parkir</div>
+            </a>
+
+            <a href="/complete" class="action-card">
+                <div class="title">Kendaraan Keluar</div>
+                <div class="desc">Scan plat nomor via webcam untuk complete parkir</div>
+            </a>
+
+            <a href="/data-parkir" class="action-card">
+                <div class="title">Data Parkir</div>
+                <div class="desc">Lihat semua kendaraan di lokasi & force complete</div>
+            </a>
+
+            <a href="/logout" class="action-card danger">
+                <div class="title">Logout</div>
+                <div class="desc">Keluar dari sesi admin</div>
+            </a>
+        </div>
+    </div>
+</body>
+</html>
