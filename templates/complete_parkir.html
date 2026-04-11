@@ -25,7 +25,6 @@
                 right: 15%;
                 bottom: 30%;
                 border: 2px dashed #fff;
-                pointer-events: none;
                 opacity: 0.5;
             }
             .plate-display {
@@ -57,6 +56,7 @@
     </head>
     <body>
         {% include '_navbar.html' %}
+
         <div class="container">
             <div class="card" style="text-align: center">
                 <div id="stateScanning">
@@ -65,44 +65,22 @@
                         <img
                             src="{{ url_for('video_feed') }}"
                             class="camera-feed"
-                            id="liveView"
                         />
                         <div class="focus-box"></div>
                     </div>
-                    <div id="statusIndicator">
-                        <p id="statusTxt">Menyiapkan Kamera...</p>
-                        <div class="spinner"></div>
-                    </div>
+                    <p id="statusTxt">Menyiapkan Kamera...</p>
+                    <div class="spinner"></div>
                 </div>
 
                 <div id="stateSuccess" style="display: none">
-                    <h1 style="color: #22c55e">Berhasil Keluar!</h1>
+                    <h1 id="resultTitle">Result</h1>
                     <div class="plate-display" id="resultPlate"></div>
-                    <p
-                        id="resultMsg"
-                        style="margin: 15px 0; color: #64748b"
-                    ></p>
-                    <button class="btn btn-primary" onclick="location.reload()">
-                        Scan Berikutnya
-                    </button>
-                </div>
-
-                <div id="stateFailed" style="display: none">
-                    <h1 style="color: #ef4444">Gagal</h1>
-                    <p id="failMsg" style="margin: 15px 0"></p>
-                    <button
-                        class="btn btn-secondary"
-                        onclick="location.reload()"
-                    >
-                        Coba Lagi
-                    </button>
+                    <p id="resultMsg"></p>
                 </div>
             </div>
         </div>
 
         <script>
-            let refreshTimer = null;
-
             async function startScan() {
                 const statusTxt = document.getElementById("statusTxt");
                 statusTxt.textContent = "Kamera Aktif. Mencari Plat...";
@@ -111,7 +89,6 @@
                     const response = await fetch("/scan-and-complete", {
                         method: "POST",
                     });
-
                     const data = await response.json();
 
                     document.getElementById("stateScanning").style.display =
@@ -121,11 +98,10 @@
 
                     document.getElementById("resultPlate").textContent =
                         data.plate || "-";
-
                     document.getElementById("resultMsg").textContent =
                         data.message || "Terjadi kesalahan.";
 
-                    const title = document.querySelector("#stateSuccess h1");
+                    const title = document.getElementById("resultTitle");
 
                     if (data.success) {
                         title.textContent = "Berhasil Keluar!";
@@ -133,22 +109,19 @@
                     } else {
                         title.textContent = "Gagal!";
                         title.style.color = "#ef4444";
-
-                        refreshTimer = setTimeout(() => {
-                            location.reload();
-                        }, 6000);
                     }
+
+                    setTimeout(() => {
+                        location.reload();
+                    }, 6000);
                 } catch (error) {
                     statusTxt.textContent = "Error Koneksi Server";
                     statusTxt.style.color = "#ef4444";
-                }
-            }
 
-            function scanAgain() {
-                if (refreshTimer) {
-                    clearTimeout(refreshTimer);
+                    setTimeout(() => {
+                        location.reload();
+                    }, 6000);
                 }
-                location.reload();
             }
 
             window.onload = () => {
