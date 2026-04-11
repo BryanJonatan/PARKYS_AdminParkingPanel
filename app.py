@@ -65,24 +65,68 @@ def dashboard():
 
 @app.route("/scan-and-create", methods=["POST"])
 def scan_and_create():
-    if "admin_email" not in session: return jsonify({"success": False}), 401
+    if "admin_email" not in session:
+        return jsonify({"success": False}), 401
+
     raw_plate = scan_plate(camera)
-    if not raw_plate: return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
-    
+    if not raw_plate:
+        return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
+
     plate = normalize_plate(raw_plate)
-    payload = {"adminUserId": int(session.get("admin_user_id")), "nomorPlat": plate}
+
+    payload = {
+        "adminUserId": int(session.get("admin_user_id")),
+        "nomorPlat": plate
+    }
+
     resp = requests.post(f"{API_BASE}/api/v1/webcam-parkir/create", json=payload)
-    return jsonify({"success": True, "plate": plate, "message": resp.json().get("message")}) if resp.status_code == 200 else jsonify({"success": False, "message": "Gagal ke Backend.", "plate": plate})
+
+    if resp.status_code != 200:
+        return jsonify({
+            "success": False,
+            "message": "Gagal ke Backend.",
+            "plate": plate
+        })
+
+    backend_data = resp.json()
+    return jsonify({
+        "success": backend_data.get("success", False),
+        "message": backend_data.get("message"),
+        "plate": plate
+    })
 
 @app.route("/scan-and-complete", methods=["POST"])
 def scan_and_complete():
-    if "admin_email" not in session: return jsonify({"success": False}), 401
+    if "admin_email" not in session:
+        return jsonify({"success": False}), 401
+
     raw_plate = scan_plate(camera)
-    if not raw_plate: return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
+    if not raw_plate:
+        return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
+
     plate = normalize_plate(raw_plate)
-    payload = {"adminParkingId": int(session.get("admin_user_id")), "nomorPlat": plate}
+
+    payload = {
+        "adminParkingId": int(session.get("admin_user_id")),
+        "nomorPlat": plate
+    }
+
     resp = requests.post(f"{API_BASE}/api/v1/webcam-parkir/complete", json=payload)
-    return jsonify({"success": True, "plate": plate, "message": "Berhasil Keluar"}) if resp.status_code == 200 else jsonify({"success": False, "message": "Gagal proses keluar.", "plate": plate})
+
+    if resp.status_code != 200:
+        return jsonify({
+            "success": False,
+            "message": "Gagal proses keluar.",
+            "plate": plate
+        })
+
+    backend_data = resp.json()
+
+    return jsonify({
+        "success": backend_data.get("success", False),
+        "message": backend_data.get("message"),
+        "plate": plate
+    })
 
 @app.route("/create")
 def create_parkir(): return render_template("create_parkir.html") if "admin_email" in session else redirect(url_for("login"))
@@ -120,4 +164,4 @@ def force_complete(parking_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=3000, debug=False, threaded=True)
