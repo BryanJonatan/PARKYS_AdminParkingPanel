@@ -101,39 +101,54 @@
         </div>
 
         <script>
+            let refreshTimer = null;
+
             async function startScan() {
                 const statusTxt = document.getElementById("statusTxt");
                 statusTxt.textContent = "Kamera Aktif. Mencari Plat...";
 
                 try {
-                    const response = await fetch("/scan-and-create", {
+                    const response = await fetch("/scan-and-complete", {
                         method: "POST",
                     });
+
                     const data = await response.json();
 
-                    if (data.success) {
-                        document.getElementById("stateScanning").style.display =
-                            "none";
-                        document.getElementById("stateSuccess").style.display =
-                            "block";
-                        document.getElementById("resultPlate").textContent =
-                            data.plate;
-                        document.getElementById("resultMsg").textContent =
-                            data.message;
-                    } else {
-                        statusTxt.textContent =
-                            data.message || "Terjadi kesalahan.";
-                        statusTxt.style.color = "#ef4444";
+                    document.getElementById("stateScanning").style.display =
+                        "none";
+                    document.getElementById("stateSuccess").style.display =
+                        "block";
 
-                        setTimeout(() => {
-                            statusTxt.style.color = "";
-                            startScan();
-                        }, 5000);
+                    document.getElementById("resultPlate").textContent =
+                        data.plate || "-";
+
+                    document.getElementById("resultMsg").textContent =
+                        data.message || "Terjadi kesalahan.";
+
+                    const title = document.querySelector("#stateSuccess h1");
+
+                    if (data.success) {
+                        title.textContent = "Berhasil Keluar!";
+                        title.style.color = "#22c55e";
+                    } else {
+                        title.textContent = "Gagal!";
+                        title.style.color = "#ef4444";
+
+                        refreshTimer = setTimeout(() => {
+                            location.reload();
+                        }, 6000);
                     }
                 } catch (error) {
                     statusTxt.textContent = "Error Koneksi Server";
                     statusTxt.style.color = "#ef4444";
                 }
+            }
+
+            function scanAgain() {
+                if (refreshTimer) {
+                    clearTimeout(refreshTimer);
+                }
+                location.reload();
             }
 
             window.onload = () => {
