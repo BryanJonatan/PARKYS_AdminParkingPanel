@@ -1,63 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <title>Kendaraan Masuk - PARKYS</title>
-    <link rel="stylesheet" href="/static/css/style.css">
-    <style>
-        .camera-container { position: relative; width: 100%; max-width: 520px; margin: 0 auto 20px; }
-        .camera-feed { width: 100%; border-radius: 12px; border: 4px solid #38bdf8; background: #000; min-height: 300px; }
-        .focus-box { position: absolute; top: 30%; left: 15%; right: 15%; bottom: 30%; border: 2px dashed #fff; pointer-events: none; opacity: 0.5; }
-        .plate-display { background: #0f172a; color: #38bdf8; padding: 15px; font-size: 2rem; font-weight: bold; border-radius: 8px; margin: 10px 0; }
-        .spinner { width: 24px; height: 24px; border: 3px solid rgba(56,189,248,0.3); border-top-color: #38bdf8; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
-</head>
-<body>
-    {% include '_navbar.html' %}
-    <div class="container">
-        <div class="card" style="text-align:center;">
-            <div id="stateScanning">
-                <h1> Scanner Masuk</h1>
-                <div class="camera-container">
-                    <img src="{{ url_for('video_feed') }}" class="camera-feed" id="liveView">
-                    <div class="focus-box"></div>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Kendaraan Masuk - PARKYS</title>
+        <link rel="stylesheet" href="/static/css/style.css" />
+        <style>
+            .camera-container {
+                position: relative;
+                width: 100%;
+                max-width: 520px;
+                margin: 0 auto 20px;
+            }
+            .camera-feed {
+                width: 100%;
+                border-radius: 12px;
+                border: 4px solid #38bdf8;
+                background: #000;
+                min-height: 300px;
+            }
+            .focus-box {
+                position: absolute;
+                top: 30%;
+                left: 15%;
+                right: 15%;
+                bottom: 30%;
+                border: 2px dashed #fff;
+                pointer-events: none;
+                opacity: 0.5;
+            }
+            .plate-display {
+                background: #0f172a;
+                color: #38bdf8;
+                padding: 15px;
+                font-size: 2rem;
+                font-weight: bold;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            .spinner {
+                width: 24px;
+                height: 24px;
+                border: 3px solid rgba(56, 189, 248, 0.3);
+                border-top-color: #38bdf8;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto;
+            }
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </head>
+    <body>
+        {% include '_navbar.html' %}
+        <div class="container">
+            <div class="card" style="text-align: center">
+                <div id="stateScanning">
+                    <h1>Scanner Masuk</h1>
+                    <div class="camera-container">
+                        <img
+                            src="{{ url_for('video_feed') }}"
+                            class="camera-feed"
+                            id="liveView"
+                        />
+                        <div class="focus-box"></div>
+                    </div>
+                    <div id="statusIndicator">
+                        <p id="statusTxt">Menyiapkan Kamera...</p>
+                        <div class="spinner"></div>
+                    </div>
                 </div>
-                <div id="statusIndicator">
-                    <p id="statusTxt">Menyiapkan Kamera...</p>
-                    <div class="spinner"></div>
-                </div>
-            </div>
 
-            <div id="stateSuccess" style="display:none;">
-                <h1 style="color: #22c55e;"> Berhasil!</h1>
-                <div class="plate-display" id="resultPlate"></div>
-                <p id="resultMsg"></p>
-                <button class="btn btn-primary" onclick="location.reload()">Scan Lagi</button>
+                <div id="stateSuccess" style="display: none">
+                    <h1 style="color: #22c55e">Berhasil!</h1>
+                    <div class="plate-display" id="resultPlate"></div>
+                    <p id="resultMsg"></p>
+                    <button class="btn btn-primary" onclick="location.reload()">
+                        Scan Lagi
+                    </button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <script>
-        async function startScan() {
-            const statusTxt = document.getElementById('statusTxt');
-            statusTxt.textContent = "Kamera Aktif. Mencari Plat...";
-            try {
-                const response = await fetch('/scan-and-create', { method: 'POST' });
-                const data = await response.json();
-                if (data.success) {
-                    document.getElementById('stateScanning').style.display = 'none';
-                    document.getElementById('stateSuccess').style.display = 'block';
-                    document.getElementById('resultPlate').textContent = data.plate;
-                    document.getElementById('resultMsg').textContent = data.message;
-                } else {
-                    statusTxt.textContent = "Plat tidak ditemukan, mengulang...";
-                    setTimeout(startScan, 1000);
+        <script>
+            let refreshTimer = null;
+
+            async function startScan() {
+                const statusTxt = document.getElementById("statusTxt");
+                statusTxt.textContent = "Kamera Aktif. Mencari Plat...";
+
+                try {
+                    const response = await fetch("/scan-and-create", {
+                        method: "POST",
+                    });
+
+                    const data = await response.json();
+
+                    document.getElementById("stateScanning").style.display =
+                        "none";
+                    document.getElementById("stateSuccess").style.display =
+                        "block";
+
+                    document.getElementById("resultPlate").textContent =
+                        data.plate || "-";
+
+                    document.getElementById("resultMsg").textContent =
+                        data.message || "Terjadi kesalahan.";
+
+                    const title = document.querySelector("#stateSuccess h1");
+
+                    if (data.success) {
+                        title.textContent = "Berhasil!";
+                        title.style.color = "#22c55e";
+                    } else {
+                        title.textContent = "Gagal!";
+                        title.style.color = "#ef4444";
+
+                        refreshTimer = setTimeout(() => {
+                            location.reload();
+                        }, 6000);
+                    }
+                } catch (error) {
+                    statusTxt.textContent = "Error Koneksi Server";
+                    statusTxt.style.color = "#ef4444";
                 }
-            } catch (error) { statusTxt.textContent = "Error Koneksi Server"; }
-        }
+            }
 
-        window.onload = () => { setTimeout(startScan, 2000); };
-    </script>
-</body>
+            function scanAgain() {
+                if (refreshTimer) {
+                    clearTimeout(refreshTimer);
+                }
+                location.reload();
+            }
+
+            window.onload = () => {
+                setTimeout(startScan, 2000);
+            };
+        </script>
+    </body>
 </html>

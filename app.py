@@ -11,7 +11,7 @@ app.secret_key = "raspberry-secret-key"
 
 API_BASE = config.BACKEND_URL
 
-
+#for raspberry pi setting
 camera = cv2.VideoCapture('/dev/video1', cv2.CAP_V4L2)
 if not camera.isOpened():
     camera = cv2.VideoCapture('/dev/video0', cv2.CAP_V4L2)
@@ -19,6 +19,25 @@ if not camera.isOpened():
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
+#camera setting if you want to run the program on a laptop or desktop
+# def init_camera():
+#     for i in range(3):
+#         cam = cv2.VideoCapture(i, cv2.CAP_DSHOW) 
+#         if cam.isOpened():
+#             print(f"[INFO] Using camera index {i}")
+#             return cam
+
+#     print("[ERROR] No camera found!")
+#     return None
+
+# camera = init_camera()
+
+# if camera:
+#     camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+#     camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+#     camera.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+
 
 lock = threading.Lock()
 
@@ -40,7 +59,7 @@ def video_feed():
 def normalize_plate(plate: str) -> str:
     return re.sub(r'\s+', '', plate.strip().upper())
 
-# --- ROUTES ---
+
 @app.route("/logout")
 def logout():
     print("[LOGOUT] clearing session")
@@ -65,24 +84,105 @@ def dashboard():
 
 @app.route("/scan-and-create", methods=["POST"])
 def scan_and_create():
-    if "admin_email" not in session: return jsonify({"success": False}), 401
+    if "admin_email" not in session:
+        return jsonify({"success": False}), 401
+
     raw_plate = scan_plate(camera)
-    if not raw_plate: return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
-    
+
+    if not raw_plate:
+        return jsonify({
+            "success": False,
+            "message": "Plat tidak terdeteksi."
+        })
+
     plate = normalize_plate(raw_plate)
-    payload = {"adminUserId": int(session.get("admin_user_id")), "nomorPlat": plate}
-    resp = requests.post(f"{API_BASE}/api/v1/webcam-parkir/create", json=payload)
-    return jsonify({"success": True, "plate": plate, "message": resp.json().get("message")}) if resp.status_code == 200 else jsonify({"success": False, "message": "Gagal ke Backend.", "plate": plate})
+
+    payload = {
+        "adminUserId": int(session.get("admin_user_id")),
+        "nomorPlat": plate
+    }
+
+    resp = requests.post(
+        f"{API_BASE}/api/v1/webcam-parkir/create",
+        json=payload
+    )
+    print("STATUS:", resp.status_code)
+    print("RAW RESPONSE:", resp.text)  
+
+  
+    try:
+        backend_data = resp.json()
+    except Exception as e:
+        backend_data = {}
+    
+    message = (
+    backend_data.get("message")
+    or backend_data.get("Message")
+    or "Unknown error from backend"
+)
+    success = (
+    backend_data.get("success")
+    if "success" in backend_data
+    else backend_data.get("Success", False)
+)
+
+    return jsonify({
+    "success": success,
+    "message": message,
+   
+})
+
+
 
 @app.route("/scan-and-complete", methods=["POST"])
 def scan_and_complete():
-    if "admin_email" not in session: return jsonify({"success": False}), 401
+    if "admin_email" not in session:
+        return jsonify({"success": False}), 401
+
     raw_plate = scan_plate(camera)
-    if not raw_plate: return jsonify({"success": False, "message": "Plat tidak terdeteksi."})
+
+    if not raw_plate:
+        return jsonify({
+            "success": False,
+            "message": "Plat tidak terdeteksi."
+        })
+
     plate = normalize_plate(raw_plate)
-    payload = {"adminParkingId": int(session.get("admin_user_id")), "nomorPlat": plate}
-    resp = requests.post(f"{API_BASE}/api/v1/webcam-parkir/complete", json=payload)
-    return jsonify({"success": True, "plate": plate, "message": "Berhasil Keluar"}) if resp.status_code == 200 else jsonify({"success": False, "message": "Gagal proses keluar.", "plate": plate})
+
+    payload = {
+        "adminParkingId": int(session.get("admin_user_id")),
+        "nomorPlat": plate
+    }
+
+    resp = requests.post(
+        f"{API_BASE}/api/v1/webcam-parkir/complete",
+        json=payload
+    )
+
+    print("STATUS:", resp.status_code)
+    print("RAW RESPONSE:", resp.text)
+
+    try:
+        backend_data = resp.json()
+    except Exception:
+        backend_data = {}
+
+    message = (
+        backend_data.get("message")
+        or backend_data.get("Message")
+        or "Unknown error from backend"
+    )
+
+    success = (
+        backend_data.get("success")
+        if "success" in backend_data
+        else backend_data.get("Success", False)
+    )
+
+    return jsonify({
+        "success": success,
+        "message": message,
+    })
 
 @app.route("/create")
 def create_parkir(): return render_template("create_parkir.html") if "admin_email" in session else redirect(url_for("login"))
