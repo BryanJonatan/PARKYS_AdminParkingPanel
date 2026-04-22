@@ -1,45 +1,32 @@
 <nav class="navbar">
     <span class="brand">PARKYS</span>
+
     <div class="nav-links">
         <a
             href="/dashboard"
-            {%
-            if
-            active=""
-            ="dashboard"
-            %}class="active"
-            {%
-            endif
-            %}
-            >Dashboard</a
+            class="{{ 'active' if active == 'dashboard' else '' }}"
         >
-        <a href="/create" {% if active="" ="create" %}class="active" {% endif %}
-            >Masuk</a
-        >
+            Dashboard
+        </a>
+
+        <a href="/create" class="{{ 'active' if active == 'create' else '' }}">
+            Masuk
+        </a>
+
         <a
             href="/complete"
-            {%
-            if
-            active=""
-            ="complete"
-            %}class="active"
-            {%
-            endif
-            %}
-            >Keluar</a
+            class="{{ 'active' if active == 'complete' else '' }}"
         >
+            Keluar
+        </a>
+
         <a
             href="/data-parkir"
-            {%
-            if
-            active=""
-            ="data-parkir"
-            %}class="active"
-            {%
-            endif
-            %}
-            >Data Parkir</a
+            class="{{ 'active' if active == 'data-parkir' else '' }}"
         >
+            Data Parkir
+        </a>
+
         <a href="/logout" style="color: #f87171">Logout</a>
     </div>
 </nav>
